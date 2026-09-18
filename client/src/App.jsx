@@ -3,11 +3,23 @@ import { useAuth } from './context/AuthContext';
 import Navbar from './components/Navbar';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import MapDashboard from './components/MapDashboard';
+import ProjectsRegistry from './pages/ProjectsRegistry';
 
 function App() {
   const { isAuthenticated, loading } = useAuth();
   const [authView, setAuthView] = useState('login'); // 'login' | 'register'
   const [activeTab, setActiveTab] = useState('map'); // 'map' | 'projects' | 'analytics'
+  const [selectedSiteId, setSelectedSiteId] = useState(null);
+
+  const handleSelectSiteForAnalytics = (siteId) => {
+    setSelectedSiteId(siteId);
+    setActiveTab('analytics');
+  };
+
+  const handleNavigateToMapWithProject = (projectId) => {
+    setActiveTab('map');
+  };
 
   if (loading) {
     return (
@@ -55,17 +67,29 @@ function App() {
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
       <main style={{ flex: 1, position: 'relative' }}>
-        {/* Placeholder until Features 5 and 6 mount their views */}
-        <div style={{ padding: '32px', maxWidth: '1440px', margin: '0 auto' }}>
-          <div className="glass-panel" style={{ padding: '24px', textAlign: 'center' }}>
-            <h3 style={{ marginBottom: '8px' }}>
-              Authenticated Session Active: {activeTab.toUpperCase()}
-            </h3>
-            <p style={{ color: 'var(--text-secondary)' }}>
-              Ready for Map Dashboard and Analytics views.
-            </p>
+        {activeTab === 'map' && (
+          <MapDashboard
+            onSelectSite={handleSelectSiteForAnalytics}
+            initialSelectedSiteId={selectedSiteId}
+          />
+        )}
+        {activeTab === 'projects' && (
+          <ProjectsRegistry
+            onNavigateToMap={handleNavigateToMapWithProject}
+            onSelectSiteForAnalytics={handleSelectSiteForAnalytics}
+          />
+        )}
+        {activeTab === 'analytics' && (
+          <div style={{ padding: '32px', maxWidth: '1440px', margin: '0 auto' }}>
+            <div className="glass-panel" style={{ padding: '32px', textAlign: 'center' }}>
+              <h3>Site Analytics Module</h3>
+              <p style={{ color: 'var(--text-secondary)', marginTop: '8px' }}>
+                Selected Site ID:{' '}
+                {selectedSiteId || 'Select a site from the Map or Projects Registry'}
+              </p>
+            </div>
           </div>
-        </div>
+        )}
       </main>
     </div>
   );

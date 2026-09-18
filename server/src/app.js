@@ -13,9 +13,11 @@ const app = express();
 app.use(helmet());
 
 // Enable CORS for frontend client
+const allowedOrigins = process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : true; // allow all in development
+
 app.use(
   cors({
-    origin: true,
+    origin: allowedOrigins,
     credentials: true,
   })
 );

@@ -11,8 +11,139 @@ import {
   Globe,
   ArrowUpRight,
   Search,
-  ExternalLink,
+  Trash2,
+  AlertTriangle,
+  X,
 } from 'lucide-react';
+
+// Inline confirmation dialog for delete
+const DeleteConfirmModal = ({ project, onConfirm, onCancel, deleting }) => {
+  if (!project) return null;
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0,0,0,0.75)',
+        backdropFilter: 'blur(6px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 9000,
+        padding: '20px',
+      }}
+      onClick={onCancel}
+    >
+      <div
+        className="glass-panel"
+        style={{
+          width: '100%',
+          maxWidth: '460px',
+          padding: '28px',
+          border: '1px solid rgba(248, 113, 113, 0.4)',
+          boxShadow: '0 20px 60px rgba(0,0,0,0.9), 0 0 40px rgba(248,113,113,0.1)',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div
+          style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', marginBottom: '20px' }}
+        >
+          <div
+            style={{
+              width: '44px',
+              height: '44px',
+              borderRadius: '12px',
+              background: 'rgba(248, 113, 113, 0.15)',
+              border: '1px solid rgba(248, 113, 113, 0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <AlertTriangle size={22} color="#f87171" />
+          </div>
+          <div>
+            <h3 style={{ fontSize: '1.15rem', marginBottom: '4px' }}>Delete Project</h3>
+            <p style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+              This action is{' '}
+              <strong style={{ color: '#f87171' }}>permanent and irreversible</strong>. All
+              associated sites and telemetry analytics will be permanently deleted.
+            </p>
+          </div>
+          <button
+            onClick={onCancel}
+            className="btn-secondary btn-sm"
+            style={{ padding: '4px 8px', flexShrink: 0 }}
+          >
+            <X size={14} />
+          </button>
+        </div>
+
+        {/* Project preview */}
+        <div
+          style={{
+            background: 'rgba(248, 113, 113, 0.06)',
+            border: '1px solid rgba(248, 113, 113, 0.2)',
+            borderRadius: '10px',
+            padding: '14px 16px',
+            marginBottom: '24px',
+          }}
+        >
+          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '4px' }}>
+            SELECTED FOR DELETION
+          </div>
+          <div style={{ fontSize: '1rem', fontWeight: 700, color: '#f8fafc', marginBottom: '4px' }}>
+            {project.name}
+          </div>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+            {project.siteCount || 0} sites · {project.totalHectares || 0} ha managed ·{' '}
+            {project.country}
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button
+            onClick={onCancel}
+            className="btn-secondary"
+            style={{ flex: 1, justifyContent: 'center' }}
+            disabled={deleting}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={deleting}
+            style={{
+              flex: 1,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              background: deleting
+                ? 'rgba(248,113,113,0.4)'
+                : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+              color: '#ffffff',
+              fontWeight: 600,
+              fontSize: '0.9rem',
+              padding: '10px 18px',
+              borderRadius: 'var(--radius-sm)',
+              border: 'none',
+              cursor: deleting ? 'not-allowed' : 'pointer',
+              boxShadow: '0 4px 14px rgba(239,68,68,0.35)',
+              transition: 'all 0.2s ease',
+            }}
+          >
+            <Trash2 size={16} />
+            {deleting ? 'Deleting...' : 'Yes, Delete Project'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const ProjectsRegistry = ({ onNavigateToMap, onSelectSiteForAnalytics }) => {
   const [projects, setProjects] = useState([]);
@@ -20,6 +151,11 @@ const ProjectsRegistry = ({ onNavigateToMap, onSelectSiteForAnalytics }) => {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('ALL');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+  // Delete state
+  const [projectToDelete, setProjectToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   const fetchProjects = async () => {
     try {
@@ -39,6 +175,22 @@ const ProjectsRegistry = ({ onNavigateToMap, onSelectSiteForAnalytics }) => {
     fetchProjects();
   }, []);
 
+  const handleDeleteConfirm = async () => {
+    if (!projectToDelete) return;
+    try {
+      setDeleting(true);
+      setDeleteError('');
+      await projectAPI.delete(projectToDelete._id);
+      // Remove from local state instantly
+      setProjects((prev) => prev.filter((p) => p._id !== projectToDelete._id));
+      setProjectToDelete(null);
+    } catch (err) {
+      setDeleteError(err?.response?.data?.message || 'Failed to delete project. Please try again.');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const filteredProjects = projects.filter((p) => {
     const matchesSearch =
       p.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -54,6 +206,55 @@ const ProjectsRegistry = ({ onNavigateToMap, onSelectSiteForAnalytics }) => {
 
   return (
     <div style={{ maxWidth: '1440px', margin: '0 auto', padding: '32px 24px' }}>
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        project={projectToDelete}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => {
+          setProjectToDelete(null);
+          setDeleteError('');
+        }}
+        deleting={deleting}
+      />
+
+      {/* Delete error toast */}
+      {deleteError && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: '24px',
+            right: '24px',
+            zIndex: 9999,
+            background: 'rgba(239,68,68,0.15)',
+            border: '1px solid rgba(239,68,68,0.4)',
+            borderRadius: '10px',
+            padding: '12px 20px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            backdropFilter: 'blur(12px)',
+            color: '#f87171',
+            fontSize: '0.85rem',
+            maxWidth: '380px',
+          }}
+        >
+          <AlertTriangle size={16} />
+          {deleteError}
+          <button
+            onClick={() => setDeleteError('')}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#f87171',
+              cursor: 'pointer',
+              marginLeft: 'auto',
+            }}
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
+
       {/* Top Header & Action */}
       <div
         style={{
@@ -265,8 +466,37 @@ const ProjectsRegistry = ({ onNavigateToMap, onSelectSiteForAnalytics }) => {
                     marginBottom: '12px',
                   }}
                 >
-                  <span className="badge badge-emerald">{project.projectType}</span>
-                  <span className="badge badge-cyan">{project.standard}</span>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <span className="badge badge-emerald">{project.projectType}</span>
+                    <span className="badge badge-cyan">{project.standard}</span>
+                  </div>
+                  {/* Delete button */}
+                  <button
+                    onClick={() => setProjectToDelete(project)}
+                    title="Delete project"
+                    style={{
+                      background: 'rgba(248, 113, 113, 0.08)',
+                      border: '1px solid rgba(248, 113, 113, 0.25)',
+                      borderRadius: '8px',
+                      padding: '6px 8px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      color: '#f87171',
+                      transition: 'all 0.2s ease',
+                      flexShrink: 0,
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'rgba(248, 113, 113, 0.18)';
+                      e.currentTarget.style.borderColor = 'rgba(248, 113, 113, 0.5)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'rgba(248, 113, 113, 0.08)';
+                      e.currentTarget.style.borderColor = 'rgba(248, 113, 113, 0.25)';
+                    }}
+                  >
+                    <Trash2 size={15} />
+                  </button>
                 </div>
 
                 <h3 style={{ fontSize: '1.25rem', marginBottom: '8px', lineHeight: 1.3 }}>

@@ -233,9 +233,9 @@ npm run dev
 
 This runs both backend and frontend concurrently:
 
-- **Frontend Dashboard**: [http://localhost:3000](http://localhost:3000)
-- **Backend API**: [http://localhost:5000](http://localhost:5000)
-- **API Health Check**: [http://localhost:5000/api/health](http://localhost:5000/api/health)
+- **Frontend Dashboard**: [https://daruka-earth-ivory.vercel.app/](https://daruka-earth-ivory.vercel.app/)
+- **Backend API**: [https://darukaa-earth-api-2niw.onrender.com](https://darukaa-earth-api-2niw.onrender.com)
+- **API Health Check**: [https://darukaa-earth-api-2niw.onrender.com/api/health](https://darukaa-earth-api-2niw.onrender.com/api/health)
 
 _(Note: The server automatically detects if the database is fresh and self-seeds 4 global conservation projects, 4 GeoJSON polygon sites, and 32 quarters of satellite telemetry!)_
 
